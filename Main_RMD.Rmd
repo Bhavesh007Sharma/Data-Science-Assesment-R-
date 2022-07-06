@@ -1,0 +1,264 @@
+---
+title: 
+author: "Bhavesh "
+date: '2022-05-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+ #Answer 1 It’simportant to keep data aggregated in order to protect privacy and instill transparency. Algorithms are currently being used for everything from machine thinking and autonomous cars, to data science and predictive analytics. The algorithms used for data collection allow companies to see very specific patterns and behavior in consumers all while keeping their identities safe
+
+#Information science field must comprehend what data is personal and delicate and identify the ways to utilize such information. When information on consumers is collected without consent, it must be scrubbed of insight that can cause the figures to be personally identifiable.
+
+#A data scientist has to always maintain transparency between the client and themselves. Professionals should always keep the clients well informed about the different ways the project is being handled, i.e., a data scientist must keep the clients updated about things like what data is being used, where is it being used, and how it is being used. 
+#Answer2 Ggplot graphs must include the Title , as title shows what kind of relationship is going to be shoewn The second components can be the giving a proper name to the x and y axis as not giving a names to axis will lwaya creatae a confusion.
+
+#Answer 3 
+#Correlation coefficient is all about establishing relationships between two variables. Some properties of correlation coefficient are as follows:
+
+#1) Correlation coefficient remains in the same measurement as in which the two variables are.
+
+#2) The sign which correlations of coefficient have will always be the same as the variance.
+
+#3) The numerical value of correlation of coefficient will be in between -1 to + 1. 
+#ANSWER 4 From the determined coffecient of father it can be clearly seend that te relation betweeen father height is some what shows aprositive proportionality with the sons height as the coffecient of father is postive , though its show a moderate relationshipmnot a strong one.
+```
+```{r}
+library(tidyverse)
+library(httr)
+library(purrr)
+library(magrittr)
+library(lubridate)
+# Task 1.1
+library(plotly)
+library(gridExtra)
+library(htmlwidgets)
+library(dplyr)
+covid = read.csv("C://Users//Deep.ai//Downloads//data (1)//data//Covid19.csv")
+countries =read.csv("C://Users//Deep.ai//Downloads//data (1)//data//Countries.csv")
+Recov =read.csv("C://Users//Deep.ai//Downloads//data (1)//data//Recovered.csv")
+Test=read.csv("C://Users//Deep.ai//Downloads//data (1)//data//Tests.csv")
+```
+```{r}
+library(tidyr)
+library(dplyr)
+library(Metrics)
+#Task 1.2
+recovered <- Recov %>% rename(country_region = "Country.Region") %>% pivot_longer(-c(country_region), names_to = "Date", values_to = "cumulative_cases")
+```
+
+```{r}
+#Task 1.3
+colnames(covid) <- c('Code','Country','Continent','Date','NewCases','NewDeaths')
+colnames(Test) <- c('Code','Date','NewTests')
+colnames(countries) <- c('Code','Country','Population','GDP','GDPCapita')
+colnames(recovered) <- c('Country','Date','Recovered')
+colnames(covid)
+colnames(Test)
+colnames(countries)
+colnames(recovered)
+covid$Date <- format(as.Date(covid$Date), "%d/%m/%Y")
+Test$Date <- format(as.Date(Test$Date), "%d/%m/%Y")
+
+#recovered$Date<-gsub("X","",as.character(recovered$Date))
+#Task 1.4
+library(lubridate)
+#recovered$Date <- recovered$Date %>% sub("X", "", .)
+library(stringr)
+recovered$new_Date = str_replace(recovered$Date,".","/")
+#Task 1.5
+covid$Recovered <- recovered$Recovered[1:15029]
+covid<-covid[1:7859,]
+covid$NewTests<-Test$NewTests
+covid<- merge(covid , countries , by = c('Country'))
+#Task 1.6
+is.na(covid)
+#Task 1.7
+library(lubridate)
+mon<-month(covid$Date)
+covid$Month <- mon
+week<-strftime(covid$Date, format = "%V")   
+covid$Week <-week
+head(covid)
+```
+
+```{r}
+#Task 2.1
+covid <- covid %>% group_by(Country) %>% mutate(CumCases=cumsum(NewCases), days = Month - first(Month) + 1)
+covid <- covid %>% group_by(Country) %>% mutate(CumDeaths=cumsum(NewDeaths), days = Month - first(Month) + 1)
+covid <- covid %>% group_by(Country) %>% mutate(CumRecovered=cumsum(Recovered), days = Month - first(Month) + 1)
+covid <- covid %>% group_by(Country) %>% mutate(CumTests=cumsum(NewTests), days = Month - first(Month) + 1)
+
+#Task 2.2
+covid <- covid%>% mutate(Active = (CumCases - (CumDeaths + CumRecovered)))
+covid <- covid%>% mutate(FatalityRate = (CumDeaths/CumCases))
+#Task 2.3
+covid <- covid%>% mutate(Cases_1M_Pop = (CumCases*(10^6) / Population))
+covid <- covid%>% mutate(Deaths_1M_Pop = (CumDeaths*(10^6) / Population))
+covid <- covid%>% mutate(Recovered_1M_Pop = (CumRecovered*(10^6) / Population))
+covid <- covid%>% mutate(Tests_1M_Pop = (CumTests*(10^6) / Population))
+#covid$Date <- as.Date(covid$Date)
+covid$Date<-as.Date(covid$Date, "%d/%m/%y")
+covid$Date<-as.Date.factor(covid$Date)
+#Task 2.4
+p<-which.max(covid$NewDeaths)
+p
+#Task 2.5
+
+print("Highest death toll date")
+print(p)
+plot1<- select(covid,"Recovered","Date","NewCases","NewDeaths","NewTests")
+
+###################################
+#
+
+ggp<-ggplot()
+ggp + geom_line(covid , mapping = aes(x=Date,y=Recovered),size=2, color="green") +
+  geom_line(covid , mapping = aes(x=Date,y=NewCases),size=2, color="#12EA32") +
+  geom_line(covid , mapping = aes(x=Date,y=NewTests),size=2, color="blue") +
+  geom_line(covid ,mapping = aes(x=Date,y=NewDeaths),size=2, color="black")
+```
+```{r}
+################
+#Task 2.6
+
+lastDay_data <-covid %>% filter(Date == "2020-05-05")
+##Task 2.7 part
+top10activeW<-lastDay_data %>%
+  arrange(Active) %>%head(n=10) 
+top10casesW <-lastDay_data %>%
+  arrange(NewCases) %>%head(n=10) 
+top10fatalityW<-lastDay_data %>%
+  arrange(FatalityRate) %>%head(n=10)
+top10testsMW <-lastDay_data %>%
+  arrange(NewTests) %>%head(n=10)
+```
+```{r}
+##Task 2.8 th part 
+#By number of continents
+
+Continent = lastDay_data %>% group_by(Continent)  %>%summarise(Death = sum(NewDeaths),Confirm = sum(NewCases), Recovered= sum(Recovered) ,Test= sum(NewTests),
+            .groups = 'drop')
+
+Continent
+```
+```{r}
+#2.9
+p<-ggplot(data=top10casesW, aes(x=Country, y=top10casesW$FatalityRate)) +
+  geom_bar(stat="identity")
+
+```
+```{r}
+
+#2.10
+cases = lastDay_data %>% group_by(Country)  %>%summarise(Confirm = sum(NewCases),
+                                                               .groups = 'drop')
+cases<-cases[1:10,]
+p<-ggplot(data=cases, aes(x=Country, y=Confirm)) +
+  geom_bar(stat="identity")
+
+p
+```
+```{r}
+#2.11
+
+per100 = lastDay_data %>% group_by(Country)  %>%summarise(Permillion = sum(Tests_1M_Pop),
+                                                         .groups = 'drop')
+per100<-per100[1:10,]
+p<-ggplot(data=per100, aes(x=Country, y=Permillion)) +
+  geom_bar(stat="identity")
+
+p
+
+```
+```{r}
+#Task 3.1
+cor_data<- select(covid,"CumCases","CumTests","Population","GDPCapita","GDP")
+library(corrplot)
+cor_data = subset(cor_data, select = -c(Country) )
+#Task 3.2
+res <- cor(cor_data)
+corrplot(res, method="circle")
+```
+
+```{r}
+print(res)
+m <- ggplot(cor_data, aes(x=CumCases))
+m + geom_histogram()
+```
+
+```{r}
+#Task 3.3
+# Log Tranform 
+cor_data$log_dat <-log (cor_data$CumCases)
+m <- ggplot(cor_data, aes(x=log_dat))
+m + geom_histogram()
+
+```
+
+```{r}
+#Task 3.4
+
+cor_data = subset(cor_data, select = -c(log_dat) )
+#For the GDP as a only variable 
+dat<-select(cor_data,"CumCases","GDP")
+smp_size <- floor(0.65 * nrow(dat))
+set.seed(123)
+train_ind <- sample(seq_len(nrow(dat)), size = smp_size)
+```
+```{r}
+#Task 3.5
+train <- dat[train_ind, ]
+test <- dat[-train_ind, ]
+regressor = lm(formula =  CumCases~ GDP , data = dat)
+summary(regressor)
+predictions<-predict(regressor,newdata = test)
+print(rmse(test$CumCases,predictions))
+```
+```{r}
+#Task 3.6
+##Splitting The Data 
+smp_size <- floor(0.65 * nrow(cor_data))
+set.seed(123)
+train_ind <- sample(seq_len(nrow(cor_data)), size = smp_size)
+
+train <- cor_data[train_ind, ]
+test <- cor_data[-train_ind, ]
+regressor = lm(formula =  CumCases~ GDP + CumTests + Population + GDPCapita, data = train)
+summary(regressor)
+predictions<-predict(regressor,newdata = test)
+print(rmse(test$CumCases,predictions))
+```
+```{r}
+
+#Task 3.7
+#From the value of R2 it can be clearly see that the second model ahs a bettwr chances to predict he cases , as the R2 value of seocnd i more greater than previous.
+```
+
+```{r}
+#4.1
+# To gauge at the rate of spread of different waves in different countries and how a particular country inside a continent has performed with regard to testing, diagnosis and treatment.
+# To estimate the healthcare infrastructure demand and efficacy of treatment based on recovery rate.
+# To gain insights with regard to other factors contributing to high recovery or mortality rate in some countries.
+#4.2
+#Set of figures:
+#1. Test Positivity Ratio
+#2. Growth trend
+#3. Cases per million
+#4. Deaths per million
+#4.3 
+#List of data sources:
+#1. Health Ministry of various countries
+#2. WHO
+#3. John Hopkins University
+#4.4
+#For the next wave the recovery rate need tio be calculated ,that will provide  extensive factored regarding the health care infrastructure.  
+#For this the number of hospital in country and amount of beds that need to be used per country is to be used in the data so to calculate the future proportions of bed 
+
+
+````
+
+
